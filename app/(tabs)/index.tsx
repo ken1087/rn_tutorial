@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import ImageViewer from "@/components/ImageViewer";
 import Button from "@/components/Button";
 import * as ImagePicker from "expo-image-picker";
@@ -12,26 +12,33 @@ import EmojiList from "@/components/EmojiList";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as MediaLibrary from "expo-media-library";
 import { captureRef } from "react-native-view-shot";
+import domtoimage from "dom-to-image";
 
 // 이미지 가져오기
 const PlaceholderImage = require("@/assets/images/background-image.png");
 
 export default function Index() {
+    // 스크린샷할 부분 참조
     const imageRef = useRef<View>(null);
 
+    // 미디어에 접근 상태
     const [status, requestPermission] = MediaLibrary.usePermissions();
 
+    // status가 null인 경우, 접근 허가할 것인지 모달 표시
     if (status === null) {
         requestPermission();
     }
 
+    // 선택한 이미지 상태
     const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
 
-    // 모달 상태
+    // Option 상태
     const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
 
+    // 이모티콘 선택 모달 표시 상태
     const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
+    // 선택한 이모티콘
     const [pickedEmoji, setPickedEmoji] = useState<ImageSource | undefined>(undefined);
 
     /**
@@ -89,19 +96,39 @@ export default function Index() {
         setIsModalVisible(false);
     };
 
+    /**
+     * 저장하기
+     */
     const onSaveImageAsync = async () => {
-        try {
-            const localUri = await captureRef(imageRef, {
-                height: 440,
-                quality: 1,
-            });
+        if (Platform.OS !== "web") {
+            try {
+                const localUri = await captureRef(imageRef, {
+                    height: 440,
+                    quality: 1,
+                });
 
-            await MediaLibrary.saveToLibraryAsync(localUri);
-            if (localUri) {
-                alert("Saved!");
+                await MediaLibrary.saveToLibraryAsync(localUri);
+                if (localUri) {
+                    alert("Saved!");
+                }
+            } catch (e) {
+                console.log(e);
             }
-        } catch (e) {
-            console.log(e);
+        } else {
+            try {
+                const dataUrl = await domtoimage.toJpeg(imageRef.current, {
+                    quality: 0.95,
+                    width: 320,
+                    height: 440,
+                });
+
+                let link = document.createElement("a");
+                link.download = "sticker-smash.jpeg";
+                link.href = dataUrl;
+                link.click();
+            } catch (e) {
+                console.log(e);
+            }
         }
     };
     return (
