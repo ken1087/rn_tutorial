@@ -115,6 +115,7 @@ export default function Index() {
                 console.log(e);
             }
         } else {
+            // Web인 경우 대응
             try {
                 const dataUrl = await domtoimage.toJpeg(imageRef.current, {
                     quality: 0.95,
