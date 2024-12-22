@@ -2,7 +2,7 @@ import { View, StyleSheet } from "react-native";
 import ImageViewer from "@/components/ImageViewer";
 import Button from "@/components/Button";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import IconButton from "@/components/IconButton";
 import CircleButton from "@/components/CircleButton";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -10,11 +10,21 @@ import { type ImageSource } from "expo-image";
 import EmojiSticker from "@/components/EmojiSticker";
 import EmojiList from "@/components/EmojiList";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as MediaLibrary from "expo-media-library";
+import { captureRef } from "react-native-view-shot";
 
 // 이미지 가져오기
 const PlaceholderImage = require("@/assets/images/background-image.png");
 
 export default function Index() {
+    const imageRef = useRef<View>(null);
+
+    const [status, requestPermission] = MediaLibrary.usePermissions();
+
+    if (status === null) {
+        requestPermission();
+    }
+
     const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
 
     // 모달 상태
@@ -80,35 +90,47 @@ export default function Index() {
     };
 
     const onSaveImageAsync = async () => {
-        // we will implement this later
-    };
+        try {
+            const localUri = await captureRef(imageRef, {
+                height: 440,
+                quality: 1,
+            });
 
+            await MediaLibrary.saveToLibraryAsync(localUri);
+            if (localUri) {
+                alert("Saved!");
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    };
     return (
+        // 제스처 상호작용을 작동을 시키기 위함
         <GestureHandlerRootView style={styles.container}>
-            <View style={styles.container}>
-                <View style={styles.imageContainer}>
+            <View style={styles.imageContainer}>
+                <View ref={imageRef} collapsable={false}>
                     <ImageViewer imgSource={PlaceholderImage} selectedImage={selectedImage} />
                     {pickedEmoji && <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />}
                 </View>
-                {showAppOptions ? (
-                    <View style={styles.optionsContainer}>
-                        <View style={styles.optionsRow}>
-                            <IconButton icon="refresh" label="Reset" onPress={onReset} />
-                            <CircleButton onPress={onAddSticker} />
-                            <IconButton icon="save-alt" label="Save" onPress={onSaveImageAsync} />
-                        </View>
-                    </View>
-                ) : (
-                    <View style={styles.footerContainer}>
-                        <Button label="Choose a photo" theme="primary" onPress={pickImageAsync} />
-                        <Button label="Use this photo" onPress={() => setShowAppOptions(true)} />
-                    </View>
-                )}
-                {/* 이모티콘 선택창이 열림 */}
-                <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
-                    <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
-                </EmojiPicker>
             </View>
+            {showAppOptions ? (
+                <View style={styles.optionsContainer}>
+                    <View style={styles.optionsRow}>
+                        <IconButton icon="refresh" label="Reset" onPress={onReset} />
+                        <CircleButton onPress={onAddSticker} />
+                        <IconButton icon="save-alt" label="Save" onPress={onSaveImageAsync} />
+                    </View>
+                </View>
+            ) : (
+                <View style={styles.footerContainer}>
+                    <Button label="Choose a photo" theme="primary" onPress={pickImageAsync} />
+                    <Button label="Use this photo" onPress={() => setShowAppOptions(true)} />
+                </View>
+            )}
+            {/* 이모티콘 선택창이 열림 */}
+            <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
+                <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
+            </EmojiPicker>
         </GestureHandlerRootView>
     );
 }
