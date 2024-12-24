@@ -117,6 +117,7 @@ export default function Index() {
         } else {
             // Web인 경우 대응
             try {
+                // @ts-ignore
                 const dataUrl = await domtoimage.toJpeg(imageRef.current, {
                     quality: 0.95,
                     width: 320,
